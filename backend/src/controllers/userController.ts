@@ -7,13 +7,14 @@ import {
   verifyRefreshToken,
 } from "../utils/auth";
 import { IUser } from "../models/User";
+import { AppError } from "../utils/errorHandler";
 
-export const registerUser: RequestHandler = async (req, res) => {
+export const registerUser: RequestHandler = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) res.status(400).json({ message: "Email already in use" });
+    if (existingUser) next(new AppError("User already exists", 400));
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -42,17 +43,21 @@ export const registerUser: RequestHandler = async (req, res) => {
       refreshToken,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error registering user", error });
+    next(error);
   }
 };
 
-export const loginUser: RequestHandler = async (req, res) => {
+export const loginUser: RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
   try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) {
-      res.status(400).json({ message: "Invalid credentials" });
+      next(new AppError("Invalid credentials", 400));
       return;
     }
 
@@ -61,8 +66,7 @@ export const loginUser: RequestHandler = async (req, res) => {
       user?.password as string
     );
 
-    if (!isPasswordValid)
-      res.status(400).json({ message: "Invalid credentials" });
+    if (!isPasswordValid) next(new AppError("Invalid credentials", 400));
 
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
@@ -72,7 +76,7 @@ export const loginUser: RequestHandler = async (req, res) => {
 
     res.status(200).json({ accessToken, refreshToken });
   } catch (error) {
-    res.status(500).json({ message: "Error logging in", error });
+    next(error);
   }
 };
 

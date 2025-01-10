@@ -11,7 +11,7 @@ import { AppError } from "../utils/errorHandler";
 
 export const registerUser: RequestHandler = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { userName, email, password } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) next(new AppError("User already exists", 400));
@@ -19,7 +19,7 @@ export const registerUser: RequestHandler = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser: IUser = await User.create({
-      name,
+      userName,
       email,
       password: hashedPassword,
     });
@@ -35,7 +35,7 @@ export const registerUser: RequestHandler = async (req, res, next) => {
       message: "User registered successfully",
       user: {
         id: newUser._id,
-        name: newUser.name,
+        userName: newUser.userName,
         email: newUser.email,
         profilePic: newUser.profilePic,
       },
@@ -47,11 +47,7 @@ export const registerUser: RequestHandler = async (req, res, next) => {
   }
 };
 
-export const loginUser: RequestHandler = async (
-  req,
-  res,
-  next
-): Promise<void> => {
+export const loginUser: RequestHandler = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 

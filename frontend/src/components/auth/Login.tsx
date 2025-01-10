@@ -3,10 +3,44 @@ import { Field } from "../ui/field";
 import { PasswordInput } from "../ui/password-input";
 import { Fieldset, Input, Stack } from "@chakra-ui/react";
 import { Button } from "../ui/button";
+import apiClient from "../../axiosConfig";
+import { useNavigate } from "react-router-dom";
+import { Toaster, toaster } from "../ui/toaster";
 
 const Login: FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async () => {
+    if (!email || !password) {
+      toaster.create({
+        description: "Please enter all fields",
+        type: "info",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apiClient.post("/users/login", {
+        email,
+        password,
+      });
+
+      console.log(response.data);
+      navigate("/chat");
+    } catch (error: any) {
+      console.log(error.response.data.message);
+      toaster.create({
+        description: error.response.data.message || "An error occured",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Fieldset.Root size="lg">
@@ -35,7 +69,13 @@ const Login: FC = () => {
             onChange={(e) => setPassword(e.target.value)}
           />
         </Field>
-        <Button>Submit</Button>
+        <Button
+          onClick={handleSubmit}
+          loading={loading}
+          loadingText="Checking.."
+        >
+          Submit
+        </Button>
         <Button
           colorPalette="cyan"
           variant="subtle"
@@ -46,6 +86,7 @@ const Login: FC = () => {
         >
           Login as Guest
         </Button>
+        <Toaster />
       </Fieldset.Content>
     </Fieldset.Root>
   );

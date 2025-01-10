@@ -4,6 +4,7 @@ import { connectDB } from "./config/db";
 import userRouter from "./routes/userRoute";
 import { errorHandler } from "./middleware/errorMiddleware";
 import { AppError } from "./utils/errorHandler";
+import cors from "cors";
 
 dotenv.config();
 const PORT = process.env.PORT;
@@ -12,13 +13,9 @@ const app = express();
 connectDB();
 
 app.use(express.json());
+app.use(cors());
 
-app.get("/", (req, res) => {
-  console.log("Hello world");
-  res.send("hiii");
-});
-
-app.use("/api/user", userRouter);
+app.use("/api/users", userRouter);
 
 app.use(errorHandler);
 

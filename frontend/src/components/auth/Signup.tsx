@@ -3,18 +3,57 @@ import { FC, useState } from "react";
 import { Field } from "../ui/field";
 import { PasswordInput } from "../ui/password-input";
 import { Button } from "../ui/button";
-import {
-  FileUploadList,
-  FileUploadRoot,
-  FileUploadTrigger,
-} from "../ui/file-upload";
-import { HiUpload } from "react-icons/hi";
+import apiClient from "../../axiosConfig";
+import { useNavigate } from "react-router-dom";
+import { toaster, Toaster } from "../ui/toaster";
 
 const Signup: FC = () => {
   const [email, setEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async () => {
+    if (!userName || !email || !password || !confirmPass) {
+      toaster.create({
+        description: "Please enter all fields",
+        type: "info",
+      });
+      return;
+    }
+
+    if (password !== confirmPass) {
+      toaster.create({
+        description: "Passwords do not match",
+        type: "error",
+      });
+      return;
+    }
+    setLoading(true);
+
+    try {
+      const response = await apiClient.post("/users/register", {
+        userName,
+        email,
+        password,
+      });
+      console.log("User registered:", response.data);
+      navigate("/chat");
+    } catch (error: any) {
+      console.error(
+        "Error registering user:",
+        error.response?.data?.message || error.message
+      );
+      toaster.create({
+        description: error.response?.data?.message || "An error occured",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Fieldset.Root size="lg">
@@ -33,7 +72,6 @@ const Signup: FC = () => {
             type="text"
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            required
           />
         </Field>
         <Field label="Email" w="md" required>
@@ -43,7 +81,6 @@ const Signup: FC = () => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
           />
         </Field>
         <Field label="Password" w="md" required>
@@ -61,16 +98,14 @@ const Signup: FC = () => {
           />
         </Field>
 
-        <FileUploadRoot accept={["image/png"]} mb={8}>
-          <FileUploadTrigger asChild>
-            <Button variant="outline" size="sm">
-              <HiUpload /> Upload Profile Pic
-            </Button>
-          </FileUploadTrigger>
-          <FileUploadList />
-        </FileUploadRoot>
-
-        <Button>Submit</Button>
+        <Button
+          onClick={handleSubmit}
+          loading={loading}
+          loadingText="Saving..."
+        >
+          Submit
+        </Button>
+        <Toaster />
       </Fieldset.Content>
     </Fieldset.Root>
   );

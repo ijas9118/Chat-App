@@ -31,17 +31,21 @@ export const registerUser: RequestHandler = async (req, res, next) => {
 
     await newUser.save();
 
-    res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: newUser._id,
-        userName: newUser.userName,
-        email: newUser.email,
-        profilePic: newUser.profilePic,
-      },
-      accessToken,
-      refreshToken,
+    res.cookie("access-token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
     });
+
+    res.cookie("refresh-token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     next(error);
   }
@@ -70,7 +74,21 @@ export const loginUser: RequestHandler = async (req, res, next) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.status(200).json({ accessToken, refreshToken });
+    res.cookie("access-token", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie("refresh-token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({ message: "Login successful" });
   } catch (error) {
     next(error);
   }
@@ -90,5 +108,36 @@ export const refreshAccessToken: RequestHandler = async (req, res) => {
     res.status(200).json({ accessToken: newAccessToken });
   } catch (error) {
     res.status(401).json({ message: "Invalid refresh token", error });
+  }
+};
+
+export const allUsers: RequestHandler = async (req, res) => {
+  try {
+    const keyword = req.query.search
+      ? {
+          $or: [
+            { name: { $regex: req.query.search, $options: "i" } },
+            { email: { $regex: req.query.search, $options: "i" } },
+          ],
+        }
+      : {};
+
+    const users = await User.find(keyword)
+      .select("userName email profilePic")
+      .find({ _id: { $ne: req.user.id } });
+
+    console.log(users);
+
+    res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      data: users,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+      error: error.message,
+    });
   }
 };

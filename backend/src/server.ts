@@ -5,6 +5,7 @@ import userRouter from "./routes/userRoute";
 import { errorHandler } from "./middleware/errorMiddleware";
 import { AppError } from "./utils/errorHandler";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 const PORT = process.env.PORT;
@@ -12,8 +13,17 @@ const PORT = process.env.PORT;
 const app = express();
 connectDB();
 
+app.use(cookieParser());
+
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 app.use("/api/users", userRouter);
 
